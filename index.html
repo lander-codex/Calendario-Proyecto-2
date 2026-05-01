@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Mi Calendario</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+
+    .fc {
+      font-size: 13px;
+    }
+
+    .barra-herramientas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 20px;
+      padding: 16px;
+      border: 1px solid #d8d8d8;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .campo-filtro {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 160px;
+    }
+
+    .campo-filtro input,
+    .campo-filtro select,
+    .campo-filtro button {
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+
+    .texto-ayuda {
+      width: 100%;
+      margin: 0;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .fc-daygrid-day {
+      position: relative;
+    }
+
+    .fc-daygrid-day-frame {
+      position: relative;
+      min-height: 140px;
+      height: 100%;
+    }
+
+    .fc-daygrid-day-top {
+      position: relative;
+      z-index: 3;
+      padding: 6px 8px 2px;
+      min-height: 34px;
+    }
+
+    .fc-daygrid-day-number {
+      position: relative;
+      z-index: 3;
+      font-weight: bold;
+    }
+
+    .fc-daygrid-day-events {
+      display: none;
+    }
+
+    .fc-daygrid-day-slot-superior,
+    .fc-daygrid-day-slot-inferior {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+      z-index: 2;
+    }
+
+    .fc-daygrid-day-slot-superior {
+      top: 38px;
+      bottom: calc(50% + 8px);
+    }
+
+    .fc-daygrid-day-slot-inferior {
+      top: calc(50% + 8px);
+      bottom: 6px;
+    }
+
+    .fc-daygrid-day-slot-superior .fc-daygrid-event-harness,
+    .fc-daygrid-day-slot-inferior .fc-daygrid-event-harness {
+      position: static !important;
+      inset: auto !important;
+      margin: 0 !important;
+    }
+
+    .fc-daygrid-day::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      top: 50%;
+      border-top: 2px dashed #d0d0d0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .fc-daygrid-day-bg {
+      pointer-events: none;
+    }
+
+    .fc-event {
+      padding: 2px 3px;
+      font-size: 11px;
+      margin: 0;
+    }
+
+    .evento-oculto {
+      display: none !important;
+    }
+
+  #modal, #modalAjustes {
+  display: none;
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: white;
+  padding: 20px;
+  border: 1px solid black;
+  z-index: 1000;
+  }
+
+    #modalAjustes {
+      display: none;
+      position: fixed;
+      top: 20%;
+      left: 40%;
+      background: white;
+      padding: 20px;
+      border: 1px solid black;
+      z-index: 1000;
+    }
+
+    .dark-mode {
+      background-color: black;
+      color: white;
+    }
+
+    .dark-mode .barra-herramientas {
+      background: #333;
+      border-color: #666;
+      color: white;
+    }
+
+    .dark-mode #modal,
+    .dark-mode #modalAjustes {
+      background: #333;
+      color: white;
+      border-color: #666;
+    }
+
+    .dark-mode .fc {
+      background-color: #222;
+      color: white;
+    }
+
+    .dark-mode .fc-daygrid-day {
+      background-color: #333;
+    }
+
+    .dark-mode .fc-daygrid-day-number {
+      color: white;
+    }
+
+    .dark-mode .fc-event {
+      background-color: #555;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="reloj">00:00:00</div>
+  
+  <h1>Mi Calendario</h1>
+
+  <div class="barra-herramientas">
+    <div class="campo-filtro">
+      <label for="busqueda">Búsqueda</label>
+      <input type="text" id="busqueda" placeholder="Tipo, número, prioridad o fecha">
+    </div>
+
+    <div class="campo-filtro">
+      <label for="filtroTipo">Tipo</label>
+      <select id="filtroTipo">
+        <option value="">Todos</option>
+        <option value="Vecindades">Vecindades</option>
+        <option value="Localidades">Localidades</option>
+      </select>
+    </div>
+
+    <div class="campo-filtro">
+      <label for="filtroPrioridad">Prioridad</label>
+      <select id="filtroPrioridad">
+        <option value="">Todas</option>
+        <option value="Urgente">Urgente</option>
+        <option value="Normal">Normal</option>
+        <option value="Tranquilo">Tranquilo</option>
+      </select>
+    </div>
+
+    <div class="campo-filtro">
+      <label for="filtroFecha">Fecha</label>
+      <input type="date" id="filtroFecha">
+    </div>
+
+    <div class="campo-filtro">
+      <label for="filtroPosicion">Posición</label>
+      <select id="filtroPosicion">
+        <option value="">Ambas</option>
+        <option value="arriba">Mitad superior</option>
+        <option value="abajo">Mitad inferior</option>
+      </select>
+    </div>
+
+    <div class="campo-filtro">
+      <button type="button" onclick="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+
+    <div class="campo-filtro">
+      <button type="button" onclick="abrirModalAjustes()">⚙️ Ajustes</button>
+    </div>
+
+    <p class="texto-ayuda">
+      Las notificaciones avisan en la hora configurada del día del evento mientras esta página esté abierta.
+    </p>
+  </div>
+
+  <div id="calendar"></div>
+
+  <div id="modal">
+    <h3>Nuevo evento</h3>
+
+    <label>Tipo:</label><br>
+    <select id="tipo">
+      <option value="Vecindades">Vecindades</option>
+      <option value="Localidades">Localidades</option>
+    </select><br><br>
+
+    <label>Número (1-100):</label><br>
+    <input type="number" id="numero" min="1" max="100"><br><br>
+
+    <label>Prioridad:</label><br>
+    <select id="prioridad">
+      <option>Urgente</option>
+      <option>Normal</option>
+      <option>Tranquilo</option>
+    </select><br><br>
+
+    <label>Posición:</label><br>
+    <select id="posicion">
+      <option value="arriba">Mitad superior</option>
+      <option value="abajo">Mitad inferior</option>
+    </select><br><br>
+
+    <div id="horaNotificacionContainer" style="display: none;">
+      <label>Hora de notificación:</label><br>
+      <input type="time" id="horaNotificacion"><br><br>
+    </div>
+
+    <button onclick="guardarEvento()">Guardar</button>
+    <button onclick="cerrarModal()">Cerrar</button>
+  </div>
+
+  <div id="modalAjustes">
+    <h3>Ajustes</h3>
+
+    <button onclick="toggleDarkMode()">Modo Oscuro</button><br><br>
+
+    <button onclick="borrarTodosEventos()">Borrar Todos los Eventos</button><br><br>
+
+    <button onclick="solicitarPermisoNotificaciones()">Activar Notificaciones</button><br><br>
+
+    <label><input type="checkbox" id="notificacionesGenerales" onchange="toggleHoraGeneral()"> Notificaciones generales</label><br><br>
+
+    <div id="horaGeneralContainer" style="display: none;">
+      <label>Hora de notificación general:</label><br>
+      <input type="time" id="horaGeneral"><br><br>
+    </div>
+
+    <button onclick="guardarAjustes()">Guardar ajustes</button><br><br>
+
+    <button onclick="cerrarModalAjustes()">Cerrar</button>
+  </div>
+
+  <script>
+    var calendar;
+    var fechaSeleccionada = null;
+    var eventoEditando = null;
+    var intervaloNotificaciones = null;
+    var notificacionesGenerales = false;
+    var horaGeneral = "09:00";
+
+    function cargarEventos() {
+      var eventosGuardados = JSON.parse(localStorage.getItem("eventos")) || [];
+      return eventosGuardados.map(function(event) {
+        return {
+          title: event.title,
+          start: event.start,
+          allDay: true,
+          backgroundColor: event.backgroundColor || event.color || "gray",
+          borderColor: event.borderColor || event.backgroundColor || event.color || "gray",
+          extendedProps: event.extendedProps || {}
+        };
+      });
+    }
+
+    function guardarEventos() {
+      var eventos = calendar.getEvents().map(function(event) {
+        return {
+          title: event.title,
+          start: event.startStr,
+          backgroundColor: event.backgroundColor,
+          borderColor: event.borderColor,
+          extendedProps: {
+            tipo: event.extendedProps.tipo,
+            numero: event.extendedProps.numero,
+            prioridad: event.extendedProps.prioridad,
+            posicion: event.extendedProps.posicion || "arriba",
+            horaNotificacion: event.extendedProps.horaNotificacion || "09:00"
+          }
+        };
+      });
+
+      localStorage.setItem("eventos", JSON.stringify(eventos));
+    }
+
+    function obtenerClaveEvento(event) {
+      return [
+        event.startStr,
+        event.title,
+        event.extendedProps.tipo || "",
+        event.extendedProps.numero || "",
+        event.extendedProps.posicion || "arriba"
+      ].join("|");
+    }
+
+    function cargarNotificacionesEnviadas() {
+      return JSON.parse(localStorage.getItem("notificacionesEnviadas")) || {};
+    }
+
+    function guardarNotificacionesEnviadas(registro) {
+      localStorage.setItem("notificacionesEnviadas", JSON.stringify(registro));
+    }
+
+    function asegurarSlots(dayCell) {
+      var frame = dayCell.querySelector(".fc-daygrid-day-frame");
+      if (!frame) {
+        return null;
+      }
+
+      var slotSuperior = frame.querySelector(".fc-daygrid-day-slot-superior");
+      if (!slotSuperior) {
+        slotSuperior = document.createElement("div");
+        slotSuperior.className = "fc-daygrid-day-slot-superior";
+        frame.appendChild(slotSuperior);
+      }
+
+      var slotInferior = frame.querySelector(".fc-daygrid-day-slot-inferior");
+      if (!slotInferior) {
+        slotInferior = document.createElement("div");
+        slotInferior.className = "fc-daygrid-day-slot-inferior";
+        frame.appendChild(slotInferior);
+      }
+
+      return {
+        frame: frame,
+        slotSuperior: slotSuperior,
+        slotInferior: slotInferior
+      };
+    }
+
+    function actualizarDatosEventoEnDOM(info) {
+      var posicion = info.event.extendedProps.posicion || "arriba";
+      var fecha = info.event.startStr || "";
+      var tipo = info.event.extendedProps.tipo || "";
+      var numero = info.event.extendedProps.numero || "";
+      var prioridad = info.event.extendedProps.prioridad || "";
+      var textoBusqueda = [
+        info.event.title || "",
+        tipo,
+        numero,
+        prioridad,
+        posicion,
+        fecha
+      ].join(" ").toLowerCase();
+
+      info.el.dataset.posicion = posicion;
+      info.el.dataset.tipo = tipo;
+      info.el.dataset.numero = numero;
+      info.el.dataset.prioridad = prioridad;
+      info.el.dataset.fecha = fecha;
+      info.el.dataset.busqueda = textoBusqueda;
+
+      var harness = info.el.closest(".fc-daygrid-event-harness");
+      if (harness) {
+        harness.dataset.posicion = posicion;
+        harness.dataset.tipo = tipo;
+        harness.dataset.numero = numero;
+        harness.dataset.prioridad = prioridad;
+        harness.dataset.fecha = fecha;
+        harness.dataset.busqueda = textoBusqueda;
+      }
+    }
+
+    function reorganizarEventosPorPosicion() {
+      var dayCells = document.querySelectorAll(".fc-daygrid-day");
+
+      dayCells.forEach(function(dayCell) {
+        var slots = asegurarSlots(dayCell);
+        if (!slots) {
+          return;
+        }
+
+        var harnesses = slots.frame.querySelectorAll(".fc-daygrid-event-harness");
+        harnesses.forEach(function(harness) {
+          var evento = harness.querySelector(".fc-event");
+          var posicion = harness.dataset.posicion || (evento && evento.dataset.posicion) || "arriba";
+
+          if (posicion === "abajo") {
+            slots.slotInferior.appendChild(harness);
+          } else {
+            slots.slotSuperior.appendChild(harness);
+          }
+        });
+      });
+    }
+
+    function obtenerFiltros() {
+      return {
+        texto: document.getElementById("busqueda").value.trim().toLowerCase(),
+        tipo: document.getElementById("filtroTipo").value,
+        prioridad: document.getElementById("filtroPrioridad").value,
+        fecha: document.getElementById("filtroFecha").value,
+        posicion: document.getElementById("filtroPosicion").value
+      };
+    }
+
+    function aplicarFiltros() {
+      var filtros = obtenerFiltros();
+      var harnesses = document.querySelectorAll(".fc-daygrid-event-harness");
+
+      harnesses.forEach(function(harness) {
+        var textoBusqueda = harness.dataset.busqueda || "";
+        var coincideTexto = !filtros.texto || textoBusqueda.indexOf(filtros.texto) !== -1;
+        var coincideTipo = !filtros.tipo || harness.dataset.tipo === filtros.tipo;
+        var coincidePrioridad = !filtros.prioridad || harness.dataset.prioridad === filtros.prioridad;
+        var coincideFecha = !filtros.fecha || harness.dataset.fecha === filtros.fecha;
+        var coincidePosicion = !filtros.posicion || harness.dataset.posicion === filtros.posicion;
+        var visible = coincideTexto && coincideTipo && coincidePrioridad && coincideFecha && coincidePosicion;
+
+        harness.classList.toggle("evento-oculto", !visible);
+      });
+    }
+
+    function limpiarFiltros() {
+      document.getElementById("busqueda").value = "";
+      document.getElementById("filtroTipo").value = "";
+      document.getElementById("filtroPrioridad").value = "";
+      document.getElementById("filtroFecha").value = "";
+      document.getElementById("filtroPosicion").value = "";
+      aplicarFiltros();
+    }
+
+    function borrarTodosEventos() {
+      if (confirm("¿Estás seguro de que quieres borrar TODOS los eventos? Esta acción no se puede deshacer.")) {
+        calendar.getEvents().forEach(function(event) {
+          event.remove();
+        });
+        localStorage.removeItem("eventos");
+        guardarEventos();
+        reorganizarEventosPorPosicion();
+        aplicarFiltros();
+      }
+    }
+
+    function abrirModal(fecha) {
+      fechaSeleccionada = fecha;
+      eventoEditando = null;
+      document.getElementById("tipo").value = "Vecindades";
+      document.getElementById("numero").value = "";
+      document.getElementById("prioridad").value = "Urgente";
+      document.getElementById("posicion").value = "arriba";
+      document.getElementById("horaNotificacion").value = "09:00";
+      document.getElementById("horaNotificacionContainer").style.display = notificacionesGenerales ? "none" : "block";
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function cerrarModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    function abrirModalAjustes() {
+      document.getElementById("modalAjustes").style.display = "block";
+    }
+
+    function cerrarModalAjustes() {
+      document.getElementById("modalAjustes").style.display = "none";
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+    function toggleHoraGeneral() {
+      var checked = document.getElementById("notificacionesGenerales").checked;
+      document.getElementById("horaGeneralContainer").style.display = checked ? "block" : "none";
+    }
+
+    function guardarAjustes() {
+      notificacionesGenerales = document.getElementById("notificacionesGenerales").checked;
+      horaGeneral = document.getElementById("horaGeneral").value || "09:00";
+      localStorage.setItem('notificacionesGenerales', notificacionesGenerales);
+      localStorage.setItem('horaGeneral', horaGeneral);
+      alert("Ajustes guardados.");
+      cerrarModalAjustes();
+    }
+
+    function colorPorPrioridad(prioridad) {
+      switch (prioridad) {
+        case "Urgente":
+          return "red";
+        case "Normal":
+          return "blue";
+        case "Tranquilo":
+          return "green";
+        default:
+          return "gray";
+      }
+    }
+
+    function solicitarPermisoNotificaciones() {
+      if (!("Notification" in window)) {
+        alert("Este navegador no soporta notificaciones.");
+        return;
+      }
+
+      Notification.requestPermission().then(function(permission) {
+        if (permission === "granted") {
+          comprobarNotificacionesProximas();
+        }
+      });
+    }
+
+    function obtenerFechaAviso(event) {
+      var hora = notificacionesGenerales ? horaGeneral : (event.extendedProps.horaNotificacion || "09:00");
+      var fechaAviso = new Date(event.start);
+      var [horas, minutos] = hora.split(":");
+      fechaAviso.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+      return fechaAviso;
+    }
+
+    function comprobarNotificacionesProximas() {
+      if (!calendar || !("Notification" in window) || Notification.permission !== "granted") {
+        return;
+      }
+
+      var ahora = new Date();
+      var registro = cargarNotificacionesEnviadas();
+      var haCambiadoRegistro = false;
+
+      calendar.getEvents().forEach(function(event) {
+        var fechaAviso = obtenerFechaAviso(event);
+        var finDelDia = new Date(event.start);
+        finDelDia.setHours(23, 59, 59, 999);
+        var clave = obtenerClaveEvento(event);
+
+        if (ahora >= fechaAviso && ahora <= finDelDia && !registro[clave]) {
+          new Notification("Evento de hoy", {
+            body: event.title + " - " + event.startStr,
+            tag: clave
+          });
+
+          registro[clave] = ahora.toISOString();
+          haCambiadoRegistro = true;
+        }
+      });
+
+      if (haCambiadoRegistro) {
+        guardarNotificacionesEnviadas(registro);
+      }
+    }
+
+    function iniciarComprobadorNotificaciones() {
+      if (intervaloNotificaciones !== null) {
+        clearInterval(intervaloNotificaciones);
+      }
+
+      comprobarNotificacionesProximas();
+      intervaloNotificaciones = setInterval(comprobarNotificacionesProximas, 60000);
+    }
+
+    function actualizarReloj() {
+      var ahora = new Date();
+      var horas = String(ahora.getHours()).padStart(2, '0');
+      var minutos = String(ahora.getMinutes()).padStart(2, '0');
+      var segundos = String(ahora.getSeconds()).padStart(2, '0');
+      document.getElementById("reloj").textContent = horas + ":" + minutos + ":" + segundos;
+    }
+
+    function guardarEvento() {
+      var tipo = document.getElementById("tipo").value;
+      var numero = document.getElementById("numero").value;
+      var prioridad = document.getElementById("prioridad").value;
+      var posicion = document.getElementById("posicion").value;
+      var horaNotificacion = document.getElementById("horaNotificacion").value || "09:00";
+      var color = colorPorPrioridad(prioridad);
+
+      if (!numero || !fechaSeleccionada) {
+        return;
+      }
+
+      if (eventoEditando) {
+        eventoEditando.setProp("title", tipo + " - Nº " + numero + " (" + prioridad + ")");
+        eventoEditando.setProp("backgroundColor", color);
+        eventoEditando.setProp("borderColor", color);
+        eventoEditando.setExtendedProp("tipo", tipo);
+        eventoEditando.setExtendedProp("numero", numero);
+        eventoEditando.setExtendedProp("prioridad", prioridad);
+        eventoEditando.setExtendedProp("posicion", posicion);
+        eventoEditando.setExtendedProp("horaNotificacion", horaNotificacion);
+        eventoEditando.setStart(fechaSeleccionada);
+        eventoEditando.setAllDay(true);
+        eventoEditando = null;
+      } else {
+        calendar.addEvent({
+          title: tipo + " - Nº " + numero + " (" + prioridad + ")",
+          start: fechaSeleccionada,
+          allDay: true,
+          backgroundColor: color,
+          borderColor: color,
+          extendedProps: {
+            tipo: tipo,
+            numero: numero,
+            prioridad: prioridad,
+            posicion: posicion,
+            horaNotificacion: horaNotificacion
+          }
+        });
+      }
+
+      guardarEventos();
+      reorganizarEventosPorPosicion();
+      aplicarFiltros();
+      comprobarNotificacionesProximas();
+      cerrarModal();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      var calendarEl = document.getElementById("calendar");
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "dayGridMonth",
+        events: cargarEventos(),
+
+        dateClick: function(info) {
+          abrirModal(info.dateStr);
+        },
+
+        eventClick: function(info) {
+          if (confirm("¿Quieres borrar este evento? Si pulsas Cancelar, se abrirá para editar.")) {
+            info.event.remove();
+            guardarEventos();
+            reorganizarEventosPorPosicion();
+            aplicarFiltros();
+            return;
+          }
+
+          eventoEditando = info.event;
+          fechaSeleccionada = info.event.startStr;
+          document.getElementById("tipo").value = info.event.extendedProps.tipo || "Vecindades";
+          document.getElementById("numero").value = info.event.extendedProps.numero || "";
+          document.getElementById("prioridad").value = info.event.extendedProps.prioridad || "Urgente";
+          document.getElementById("posicion").value = info.event.extendedProps.posicion || "arriba";
+          document.getElementById("horaNotificacion").value = info.event.extendedProps.horaNotificacion || "09:00";
+          document.getElementById("horaNotificacionContainer").style.display = notificacionesGenerales ? "none" : "block";
+          document.getElementById("modal").style.display = "block";
+        },
+
+        eventDidMount: function(info) {
+          actualizarDatosEventoEnDOM(info);
+          reorganizarEventosPorPosicion();
+        },
+
+        datesSet: function() {
+          reorganizarEventosPorPosicion();
+        },
+
+        eventAdd: function() {
+          reorganizarEventosPorPosicion();
+          comprobarNotificacionesProximas();
+        },
+
+        eventChange: function() {
+          reorganizarEventosPorPosicion();
+          comprobarNotificacionesProximas();
+        },
+
+        eventRemove: function() {
+          reorganizarEventosPorPosicion();
+        },
+
+        dayCellContent: function(arg) {
+          var dayName = arg.date.toLocaleDateString("es-ES", { weekday: "long" });
+          return {
+            html: arg.dayNumberText + "<br><small>" + dayName + "</small>"
+          };
+        }
+      });
+
+      calendar.render();
+      reorganizarEventosPorPosicion();
+      aplicarFiltros();
+      iniciarComprobadorNotificaciones();
+
+      notificacionesGenerales = localStorage.getItem('notificacionesGenerales') === 'true';
+      horaGeneral = localStorage.getItem('horaGeneral') || "09:00";
+      document.getElementById("notificacionesGenerales").checked = notificacionesGenerales;
+      document.getElementById("horaGeneral").value = horaGeneral;
+      toggleHoraGeneral();
+
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+
+      actualizarReloj();
+      setInterval(actualizarReloj, 1000);
+
+      document.getElementById("busqueda").addEventListener("input", aplicarFiltros);
+      document.getElementById("filtroTipo").addEventListener("change", aplicarFiltros);
+      document.getElementById("filtroPrioridad").addEventListener("change", aplicarFiltros);
+      document.getElementById("filtroFecha").addEventListener("input", aplicarFiltros);
+      document.getElementById("filtroPosicion").addEventListener("change", aplicarFiltros);
+    });
+  </script>
+</body>
+</html>
