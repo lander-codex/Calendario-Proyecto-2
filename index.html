@@ -211,8 +211,11 @@
       <label for="filtroTipo">Tipo</label>
       <select id="filtroTipo">
         <option value="">Todos</option>
-        <option value="Vecindades">Vecindades</option>
-        <option value="Localidades">Localidades</option>
+        <option value="Hotel">Hotel</option>
+        <option value="Fl">Fl</option>
+        <option value="Cat">Cat</option>
+        <option value="La Masia">La Masia</option>
+        <option value="Amb">Amb</option>
       </select>
     </div>
 
@@ -260,8 +263,11 @@
 
     <label>Tipo:</label><br>
     <select id="tipo">
-      <option value="Vecindades">Vecindades</option>
-      <option value="Localidades">Localidades</option>
+      <option value="Hotel">Hotel</option>
+      <option value="Fl">Fl</option>
+      <option value="Cat">Cat</option>
+      <option value="La Masia">La Masia</option>
+      <option value="Amb">Amb</option>
     </select><br><br>
 
     <label>Número (1-100):</label><br>
@@ -504,7 +510,7 @@
     function abrirModal(fecha) {
       fechaSeleccionada = fecha;
       eventoEditando = null;
-      document.getElementById("tipo").value = "Vecindades";
+      document.getElementById("tipo").value = "Hotel";
       document.getElementById("numero").value = "";
       document.getElementById("prioridad").value = "Urgente";
       document.getElementById("posicion").value = "arriba";
@@ -696,7 +702,7 @@
 
           eventoEditando = info.event;
           fechaSeleccionada = info.event.startStr;
-          document.getElementById("tipo").value = info.event.extendedProps.tipo || "Vecindades";
+          document.getElementById("tipo").value = info.event.extendedProps.tipo || "Hotel";
           document.getElementById("numero").value = info.event.extendedProps.numero || "";
           document.getElementById("prioridad").value = info.event.extendedProps.prioridad || "Urgente";
           document.getElementById("posicion").value = info.event.extendedProps.posicion || "arriba";
@@ -760,6 +766,13 @@
       document.getElementById("filtroFecha").addEventListener("input", aplicarFiltros);
       document.getElementById("filtroPosicion").addEventListener("change", aplicarFiltros);
     });
+  </script>
+
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker registrado"));
+  }
   </script>
 </body>
 </html>
