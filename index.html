@@ -54,6 +54,7 @@
 
     .fc-daygrid-day {
       position: relative;
+      touch-action: manipulation;
     }
 
     .fc-daygrid-day-frame {
@@ -192,6 +193,18 @@
     .dark-mode .fc-event {
       background-color: #555;
       color: white;
+    }
+
+    @media (max-width: 600px) {
+      #modal, #modalAjustes {
+        top: 0;
+        left: 0;
+        transform: none;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        overflow-y: auto;
+      }
     }
   </style>
 </head>
@@ -686,6 +699,11 @@
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         events: cargarEventos(),
+
+        selectable: true,
+        selectMirror: true,
+
+        longPressDelay: 100,
 
         dateClick: function(info) {
           abrirModal(info.dateStr);
