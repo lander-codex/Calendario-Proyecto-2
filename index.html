@@ -59,7 +59,7 @@
 
     .fc-daygrid-day-frame {
       position: relative;
-      min-height: 140px;
+      min-height: 180px;
       height: 100%;
     }
 
@@ -77,47 +77,17 @@
     }
 
     .fc-daygrid-day-events {
-      display: none;
-    }
-
-    .fc-daygrid-day-slot-superior,
-    .fc-daygrid-day-slot-inferior {
-      position: absolute;
-      left: 6px;
-      right: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      overflow-y: auto;
+      position: relative;
       z-index: 2;
+      margin-top: 2px;
+      padding: 0 6px 6px;
+      max-height: 132px;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
-    .fc-daygrid-day-slot-superior {
-      top: 38px;
-      bottom: calc(50% + 8px);
-    }
-
-    .fc-daygrid-day-slot-inferior {
-      top: calc(50% + 8px);
-      bottom: 6px;
-    }
-
-    .fc-daygrid-day-slot-superior .fc-daygrid-event-harness,
-    .fc-daygrid-day-slot-inferior .fc-daygrid-event-harness {
-      position: static !important;
-      inset: auto !important;
-      margin: 0 !important;
-    }
-
-    .fc-daygrid-day::before {
-      content: "";
-      position: absolute;
-      left: 6px;
-      right: 6px;
-      top: 50%;
-      border-top: 2px dashed #d0d0d0;
-      z-index: 1;
-      pointer-events: none;
+    .fc-daygrid-event-harness {
+      margin-top: 4px !important;
     }
 
     .fc-daygrid-day-bg {
@@ -128,6 +98,65 @@
       padding: 2px 3px;
       font-size: 11px;
       margin: 0;
+    }
+
+    .evento-arriba {
+      border-left: 4px solid #1d4ed8 !important;
+    }
+
+    .evento-abajo {
+      border-left: 4px solid #059669 !important;
+    }
+
+    .evento-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #ffffff;
+      min-width: 0;
+    }
+
+    .fc-event,
+    .fc-daygrid-event {
+      color: #ffffff !important;
+      background-color: transparent !important;
+    }
+
+    .evento-arriba,
+    .evento-abajo {
+      border-left-width: 4px !important;
+      border-left-style: solid !important;
+    }
+
+    .evento-hora,
+    .evento-posicion,
+    .evento-titulo {
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 1;
+      margin: 0;
+    }
+
+    .evento-hora {
+      color: #ffffff;
+    }
+
+    .evento-posicion {
+      color: #ffffff;
+    }
+
+    .evento-titulo {
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: normal;
+      word-break: break-word;
+      text-transform: none;
+      color: #ffffff;
     }
 
     .evento-oculto {
@@ -195,7 +224,7 @@
       color: white;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 900px) {
       #modal, #modalAjustes {
         top: 0;
         left: 0;
@@ -300,7 +329,7 @@
     </select><br><br>
 
     <div id="horaNotificacionContainer" style="display: none;">
-      <label>Hora de notificación:</label><br>
+      <label>Hora del evento:</label><br>
       <input type="time" id="horaNotificacion"><br><br>
     </div>
 
@@ -340,10 +369,14 @@
     function cargarEventos() {
       var eventosGuardados = JSON.parse(localStorage.getItem("eventos")) || [];
       return eventosGuardados.map(function(event) {
+        var start = event.start;
+        if (typeof start === "string" && start.length === 10) {
+          start = start + "T09:00";
+        }
         return {
           title: event.title,
-          start: event.start,
-          allDay: true,
+          start: start,
+          allDay: false,
           backgroundColor: event.backgroundColor || event.color || "gray",
           borderColor: event.borderColor || event.backgroundColor || event.color || "gray",
           extendedProps: event.extendedProps || {}
@@ -389,33 +422,6 @@
       localStorage.setItem("notificacionesEnviadas", JSON.stringify(registro));
     }
 
-    function asegurarSlots(dayCell) {
-      var frame = dayCell.querySelector(".fc-daygrid-day-frame");
-      if (!frame) {
-        return null;
-      }
-
-      var slotSuperior = frame.querySelector(".fc-daygrid-day-slot-superior");
-      if (!slotSuperior) {
-        slotSuperior = document.createElement("div");
-        slotSuperior.className = "fc-daygrid-day-slot-superior";
-        frame.appendChild(slotSuperior);
-      }
-
-      var slotInferior = frame.querySelector(".fc-daygrid-day-slot-inferior");
-      if (!slotInferior) {
-        slotInferior = document.createElement("div");
-        slotInferior.className = "fc-daygrid-day-slot-inferior";
-        frame.appendChild(slotInferior);
-      }
-
-      return {
-        frame: frame,
-        slotSuperior: slotSuperior,
-        slotInferior: slotInferior
-      };
-    }
-
     function actualizarDatosEventoEnDOM(info) {
       var posicion = info.event.extendedProps.posicion || "arriba";
       var fecha = info.event.startStr || "";
@@ -431,12 +437,14 @@
         fecha
       ].join(" ").toLowerCase();
 
+      var hora = info.event.extendedProps.horaNotificacion || "09:00";
       info.el.dataset.posicion = posicion;
       info.el.dataset.tipo = tipo;
       info.el.dataset.numero = numero;
       info.el.dataset.prioridad = prioridad;
       info.el.dataset.fecha = fecha;
-      info.el.dataset.busqueda = textoBusqueda;
+      info.el.dataset.hora = hora;
+      info.el.dataset.busqueda = textoBusqueda + " " + hora;
 
       var harness = info.el.closest(".fc-daygrid-event-harness");
       if (harness) {
@@ -445,31 +453,9 @@
         harness.dataset.numero = numero;
         harness.dataset.prioridad = prioridad;
         harness.dataset.fecha = fecha;
-        harness.dataset.busqueda = textoBusqueda;
+        harness.dataset.hora = hora;
+        harness.dataset.busqueda = textoBusqueda + " " + hora;
       }
-    }
-
-    function reorganizarEventosPorPosicion() {
-      var dayCells = document.querySelectorAll(".fc-daygrid-day");
-
-      dayCells.forEach(function(dayCell) {
-        var slots = asegurarSlots(dayCell);
-        if (!slots) {
-          return;
-        }
-
-        var harnesses = slots.frame.querySelectorAll(".fc-daygrid-event-harness");
-        harnesses.forEach(function(harness) {
-          var evento = harness.querySelector(".fc-event");
-          var posicion = harness.dataset.posicion || (evento && evento.dataset.posicion) || "arriba";
-
-          if (posicion === "abajo") {
-            slots.slotInferior.appendChild(harness);
-          } else {
-            slots.slotSuperior.appendChild(harness);
-          }
-        });
-      });
     }
 
     function obtenerFiltros() {
@@ -515,7 +501,6 @@
         });
         localStorage.removeItem("eventos");
         guardarEventos();
-        reorganizarEventosPorPosicion();
         aplicarFiltros();
       }
     }
@@ -657,6 +642,9 @@
         return;
       }
 
+      var fechaBase = fechaSeleccionada.split("T")[0];
+      var inicioEvento = fechaBase + "T" + horaNotificacion;
+
       if (eventoEditando) {
         eventoEditando.setProp("title", tipo + " - Nº " + numero + " (" + prioridad + ")");
         eventoEditando.setProp("backgroundColor", color);
@@ -666,14 +654,14 @@
         eventoEditando.setExtendedProp("prioridad", prioridad);
         eventoEditando.setExtendedProp("posicion", posicion);
         eventoEditando.setExtendedProp("horaNotificacion", horaNotificacion);
-        eventoEditando.setStart(fechaSeleccionada);
-        eventoEditando.setAllDay(true);
+        eventoEditando.setStart(inicioEvento);
+        eventoEditando.setAllDay(false);
         eventoEditando = null;
       } else {
         calendar.addEvent({
           title: tipo + " - Nº " + numero + " (" + prioridad + ")",
-          start: fechaSeleccionada,
-          allDay: true,
+          start: inicioEvento,
+          allDay: false,
           backgroundColor: color,
           borderColor: color,
           extendedProps: {
@@ -687,7 +675,6 @@
       }
 
       guardarEventos();
-      reorganizarEventosPorPosicion();
       aplicarFiltros();
       comprobarNotificacionesProximas();
       cerrarModal();
@@ -700,8 +687,11 @@
         initialView: "dayGridMonth",
         events: cargarEventos(),
 
-        selectable: true,
-        selectMirror: true,
+        selectable: false,
+        selectMirror: false,
+        dayMaxEvents: false,
+        dayMaxEventRows: false,
+        eventOrderStrict: true,
 
         longPressDelay: 100,
 
@@ -713,7 +703,6 @@
           if (confirm("¿Quieres borrar este evento? Si pulsas Cancelar, se abrirá para editar.")) {
             info.event.remove();
             guardarEventos();
-            reorganizarEventosPorPosicion();
             aplicarFiltros();
             return;
           }
@@ -729,27 +718,69 @@
           document.getElementById("modal").style.display = "block";
         },
 
+        eventContent: function(arg) {
+          var event = arg.event;
+          var hora = event.extendedProps.horaNotificacion || "09:00";
+          var posicion = event.extendedProps.posicion || "arriba";
+          var labelPosicion = posicion === "abajo" ? "Salida" : "Entrada";
+
+          var container = document.createElement("div");
+          container.classList.add("evento-meta");
+
+          var horaEl = document.createElement("div");
+          horaEl.classList.add("evento-hora");
+          horaEl.textContent = hora;
+          container.appendChild(horaEl);
+
+          var posEl = document.createElement("div");
+          posEl.classList.add("evento-posicion");
+          posEl.textContent = labelPosicion;
+          container.appendChild(posEl);
+
+          var tituloEl = document.createElement("div");
+          tituloEl.classList.add("evento-titulo");
+          tituloEl.textContent = event.title;
+          container.appendChild(tituloEl);
+
+          return { domNodes: [container] };
+        },
+
         eventDidMount: function(info) {
           actualizarDatosEventoEnDOM(info);
-          reorganizarEventosPorPosicion();
+        },
+
+        eventClassNames: function(arg) {
+          var posicion = arg.event.extendedProps.posicion || "arriba";
+          return posicion === "abajo" ? ["evento-abajo"] : ["evento-arriba"];
+        },
+
+        eventOrder: function(a, b) {
+          var pesoA = (a.extendedProps.posicion || "arriba") === "abajo" ? 1 : 0;
+          var pesoB = (b.extendedProps.posicion || "arriba") === "abajo" ? 1 : 0;
+
+          if (pesoA !== pesoB) {
+            return pesoA - pesoB;
+          }
+
+          return (a.title || "").localeCompare(b.title || "", "es");
         },
 
         datesSet: function() {
-          reorganizarEventosPorPosicion();
+          aplicarFiltros();
         },
 
         eventAdd: function() {
-          reorganizarEventosPorPosicion();
+          aplicarFiltros();
           comprobarNotificacionesProximas();
         },
 
         eventChange: function() {
-          reorganizarEventosPorPosicion();
+          aplicarFiltros();
           comprobarNotificacionesProximas();
         },
 
         eventRemove: function() {
-          reorganizarEventosPorPosicion();
+          aplicarFiltros();
         },
 
         dayCellContent: function(arg) {
@@ -761,7 +792,6 @@
       });
 
       calendar.render();
-      reorganizarEventosPorPosicion();
       aplicarFiltros();
       iniciarComprobadorNotificaciones();
 
