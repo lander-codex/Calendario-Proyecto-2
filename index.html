@@ -116,6 +116,10 @@
       border-left: 3px solid #059669 !important;
     }
 
+    .evento-ambas {
+      border-left: 3px solid #7c3aed !important;
+    }
+
     .evento-meta {
       display: grid;
       grid-template-columns: auto 1fr auto auto;
@@ -351,7 +355,7 @@
     </select><br><br>
 
     <label>Número (1-100):</label><br>
-    <input type="number" id="numero" min="1" max="100"><br><br>
+    <input type="text" id="numero"><br><br>
 
     <label>Prioridad:</label><br>
     <select id="prioridad">
@@ -364,10 +368,11 @@
     <select id="posicion">
       <option value="arriba">Entradas</option>
       <option value="abajo">Salidas</option>
+      <option value="ambas">Ambas</option>
     </select><br><br>
 
     <div id="horaNotificacionContainer" style="display: none;">
-      <label>Hora del evento:</label><br>
+      <label>Hora:</label><br>
       <input type="time" id="horaNotificacion"><br><br>
     </div>
 
@@ -516,7 +521,7 @@
         var coincideTipo = !filtros.tipo || harness.dataset.tipo === filtros.tipo;
         var coincidePrioridad = !filtros.prioridad || harness.dataset.prioridad === filtros.prioridad;
         var coincideFecha = !filtros.fecha || harness.dataset.fecha === filtros.fecha;
-        var coincidePosicion = !filtros.posicion || harness.dataset.posicion === filtros.posicion;
+        var coincidePosicion = !filtros.posicion || harness.dataset.posicion === filtros.posicion || harness.dataset.posicion === "ambas";
         var visible = coincideTexto && coincideTipo && coincidePrioridad && coincideFecha && coincidePosicion;
 
         harness.classList.toggle("evento-oculto", !visible);
@@ -791,7 +796,7 @@
           var event = arg.event;
           var hora = event.extendedProps.horaNotificacion || "09:00";
           var posicion = event.extendedProps.posicion || "arriba";
-          var labelPosicion = posicion === "abajo" ? "SAL" : "ENT";
+          var labelPosicion = posicion === "abajo" ? "SAL" : posicion === "ambas" ? "E/S" : "ENT";
           var prioridad = event.extendedProps.prioridad || "Normal";
           var tipo = event.extendedProps.tipo || "";
           var numero = event.extendedProps.numero || "";
@@ -831,7 +836,9 @@
 
         eventClassNames: function(arg) {
           var posicion = arg.event.extendedProps.posicion || "arriba";
-          return posicion === "abajo" ? ["evento-abajo"] : ["evento-arriba"];
+          if (posicion === "abajo") return ["evento-abajo"];
+          if (posicion === "ambas") return ["evento-ambas"];
+          return ["evento-arriba"];
         },
 
         eventOrder: function(a, b) {
