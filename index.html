@@ -8,6 +8,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     body {
@@ -50,6 +51,21 @@
       margin: 0;
       font-size: 12px;
       color: #555;
+    }
+
+    .boton-ajustes {
+      margin: 12px 0 16px;
+      padding: 12px 18px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+
+    .boton-ajustes:hover {
+      background: #eef2ff;
     }
 
     .fc-daygrid-day {
@@ -235,11 +251,99 @@
       color: white;
     }
 
+    .dark-mode .boton-ajustes {
+      background: #374151;
+      color: white;
+      border-color: #6b7280;
+    }
+
     .dark-mode #modal,
     .dark-mode #modalAjustes {
       background: #333;
       color: white;
       border-color: #666;
+    }
+
+    #miniMenu {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border: 1px solid black;
+      z-index: 1001;
+      text-align: center;
+    }
+
+    #miniMenu button {
+      margin: 5px;
+      padding: 8px 12px;
+    }
+
+    #miniMenuBackdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      z-index: 1000;
+    }
+
+    #miniMenu h4 {
+      margin-top: 0;
+      margin-bottom: 14px;
+    }
+
+    #miniMenu .menu-secundario {
+      background: #e5e7eb;
+    }
+
+    #miniMenu .menu-peligro {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .dark-mode #miniMenu {
+      background: #333;
+      color: white;
+      border-color: #666;
+    }
+
+    .dark-mode #miniMenu .menu-secundario {
+      background: #4b5563;
+      color: white;
+    }
+
+    .dark-mode #miniMenu .menu-peligro {
+      background: #7f1d1d;
+      color: #fee2e2;
+    }
+
+    .fc .fc-toolbar.fc-header-toolbar {
+      gap: 10px;
+      align-items: center;
+    }
+
+    .fc .fc-button.exportarBtn-button {
+      background: #0f766e;
+      border-color: #0f766e;
+    }
+
+    .fc .fc-button.exportarBtn-button:hover,
+    .fc .fc-button.exportarBtn-button:focus {
+      background: #115e59;
+      border-color: #115e59;
+    }
+
+    #calendar.exportando-calendario .fc-daygrid-day-frame {
+      height: auto !important;
+      min-height: 190px !important;
+    }
+
+    #calendar.exportando-calendario .fc-daygrid-day-events {
+      overflow: visible !important;
+      max-height: none !important;
     }
 
     .dark-mode .fc {
@@ -258,6 +362,22 @@
     .dark-mode .fc-event {
       background-color: #555;
       color: white;
+    }
+
+    #toggleFiltros {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .dark-mode #toggleFiltros {
+      background: #333;
+      color: white;
+      border-color: #666;
     }
 
     @media (max-width: 900px) {
@@ -285,6 +405,8 @@
   
   <h1>Mi Calendario</h1>
 
+  <button id="toggleFiltros" onclick="toggleFiltros()">▼ Filtros</button>
+
   <div class="barra-herramientas">
     <div class="campo-filtro">
       <label for="busqueda">Búsqueda</label>
@@ -298,7 +420,7 @@
         <option value="Hotel">Hotel</option>
         <option value="Fl">Fl</option>
         <option value="Cat">Cat</option>
-        <option value="La Masia">La Masia</option>
+        <option value="Masia">Masia</option>
         <option value="Amb">Amb</option>
       </select>
     </div>
@@ -331,14 +453,12 @@
       <button type="button" onclick="limpiarFiltros()">Limpiar filtros</button>
     </div>
 
-    <div class="campo-filtro">
-      <button type="button" onclick="abrirModalAjustes()">⚙️ Ajustes</button>
-    </div>
-
     <p class="texto-ayuda">
       Las notificaciones avisan en la hora configurada del día del evento mientras esta página esté abierta.
     </p>
   </div>
+
+  <button type="button" class="boton-ajustes" onclick="abrirModalAjustes()">⚙️ Ajustes</button>
 
   <div id="calendar"></div>
 
@@ -350,7 +470,7 @@
       <option value="Hotel">Hotel</option>
       <option value="Fl">Fl</option>
       <option value="Cat">Cat</option>
-      <option value="La Masia">La Masia</option>
+      <option value="Masia">Masia</option>
       <option value="Amb">Amb</option>
     </select><br><br>
 
@@ -401,10 +521,20 @@
     <button onclick="cerrarModalAjustes()">Cerrar</button>
   </div>
 
+  <div id="miniMenuBackdrop" onclick="cerrarMiniMenu()"></div>
+
+  <div id="miniMenu">
+    <h4>¿Qué quieres hacer?</h4>
+    <button type="button" onclick="editarEvento()">Editar</button>
+    <button type="button" class="menu-peligro" onclick="borrarEvento()">Borrar</button>
+    <button type="button" class="menu-secundario" onclick="cerrarMiniMenu()">Cancelar</button>
+  </div>
+
   <script>
     var calendar;
     var fechaSeleccionada = null;
     var eventoEditando = null;
+    var eventoSeleccionado = null;
     var intervaloNotificaciones = null;
     var notificacionesGenerales = false;
     var horaGeneral = "09:00";
@@ -548,6 +678,106 @@
       }
     }
 
+    function editarEvento() {
+      if (!eventoSeleccionado) {
+        return;
+      }
+
+      var evento = eventoSeleccionado;
+      cerrarMiniMenu();
+      eventoEditando = evento;
+      fechaSeleccionada = evento.startStr;
+      document.getElementById("tipo").value = evento.extendedProps.tipo || "Hotel";
+      document.getElementById("numero").value = evento.extendedProps.numero || "";
+      document.getElementById("prioridad").value = evento.extendedProps.prioridad || "Urgente";
+      document.getElementById("posicion").value = evento.extendedProps.posicion || "arriba";
+      document.getElementById("horaNotificacion").value = evento.extendedProps.horaNotificacion || "09:00";
+      document.getElementById("horaNotificacionContainer").style.display = notificacionesGenerales ? "none" : "block";
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function borrarEvento() {
+      if (!eventoSeleccionado) {
+        return;
+      }
+
+      var evento = eventoSeleccionado;
+      cerrarMiniMenu();
+      evento.remove();
+      guardarEventos();
+      aplicarFiltros();
+    }
+
+    function cerrarMiniMenu() {
+      document.getElementById("miniMenu").style.display = "none";
+      document.getElementById("miniMenuBackdrop").style.display = "none";
+      eventoSeleccionado = null;
+    }
+
+    function abrirMiniMenu(evento) {
+      eventoSeleccionado = evento;
+      document.getElementById("miniMenuBackdrop").style.display = "block";
+      document.getElementById("miniMenu").style.display = "block";
+    }
+
+    function obtenerNombreDescargaCalendario() {
+      var fechaActual = calendar ? calendar.getDate() : new Date();
+      var anio = fechaActual.getFullYear();
+      var mes = String(fechaActual.getMonth() + 1).padStart(2, "0");
+      return "calendario-" + anio + "-" + mes + ".png";
+    }
+
+    async function descargarImagenCalendario() {
+      if (typeof html2canvas === "undefined") {
+        alert("No se ha podido cargar la librerÃ­a para exportar la imagen.");
+        return;
+      }
+
+      var calendarEl = document.getElementById("calendar");
+      var contenedores = Array.from(calendarEl.querySelectorAll(".fc-daygrid-day-events"));
+      var estilosOriginales = contenedores.map(function(contenedor) {
+        return {
+          element: contenedor,
+          overflowY: contenedor.style.overflowY,
+          maxHeight: contenedor.style.maxHeight
+        };
+      });
+
+      cerrarMiniMenu();
+      calendarEl.classList.add("exportando-calendario");
+
+      contenedores.forEach(function(contenedor) {
+        contenedor.style.overflowY = "visible";
+        contenedor.style.maxHeight = "none";
+      });
+
+      try {
+        await new Promise(function(resolve) {
+          requestAnimationFrame(resolve);
+        });
+
+        var canvas = await html2canvas(calendarEl, {
+          backgroundColor: document.body.classList.contains("dark-mode") ? "#222222" : "#ffffff",
+          scale: 2,
+          useCORS: true
+        });
+
+        var enlace = document.createElement("a");
+        enlace.href = canvas.toDataURL("image/png");
+        enlace.download = obtenerNombreDescargaCalendario();
+        enlace.click();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo generar la imagen del calendario.");
+      } finally {
+        calendarEl.classList.remove("exportando-calendario");
+        estilosOriginales.forEach(function(item) {
+          item.element.style.overflowY = item.overflowY;
+          item.element.style.maxHeight = item.maxHeight;
+        });
+      }
+    }
+
     function abrirModal(fecha) {
       fechaSeleccionada = fecha;
       eventoEditando = null;
@@ -580,6 +810,20 @@
     function toggleHoraGeneral() {
       var checked = document.getElementById("notificacionesGenerales").checked;
       document.getElementById("horaGeneralContainer").style.display = checked ? "block" : "none";
+    }
+
+    function toggleFiltros() {
+      var barra = document.querySelector('.barra-herramientas');
+      var btn = document.getElementById('toggleFiltros');
+      if (barra.style.display === 'none') {
+        barra.style.display = 'flex';
+        btn.textContent = '▼ Filtros';
+        localStorage.setItem('filtrosVisible', 'true');
+      } else {
+        barra.style.display = 'none';
+        btn.textContent = '▲ Filtros';
+        localStorage.setItem('filtrosVisible', 'false');
+      }
     }
 
     function guardarAjustes() {
@@ -760,6 +1004,19 @@
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         events: cargarEventos(),
+        customButtons: {
+          exportarBtn: {
+            text: "Descargar imagen",
+            click: function() {
+              descargarImagenCalendario();
+            }
+          }
+        },
+        headerToolbar: {
+          left: "prev,next today exportarBtn",
+          center: "title",
+          right: ""
+        },
 
         selectable: false,
         selectMirror: false,
@@ -770,26 +1027,13 @@
         longPressDelay: 100,
 
         dateClick: function(info) {
+          cerrarMiniMenu();
           abrirModal(info.dateStr);
         },
 
         eventClick: function(info) {
-          if (confirm("¿Quieres borrar este evento? Si pulsas Cancelar, se abrirá para editar.")) {
-            info.event.remove();
-            guardarEventos();
-            aplicarFiltros();
-            return;
-          }
-
-          eventoEditando = info.event;
-          fechaSeleccionada = info.event.startStr;
-          document.getElementById("tipo").value = info.event.extendedProps.tipo || "Hotel";
-          document.getElementById("numero").value = info.event.extendedProps.numero || "";
-          document.getElementById("prioridad").value = info.event.extendedProps.prioridad || "Urgente";
-          document.getElementById("posicion").value = info.event.extendedProps.posicion || "arriba";
-          document.getElementById("horaNotificacion").value = info.event.extendedProps.horaNotificacion || "09:00";
-          document.getElementById("horaNotificacionContainer").style.display = notificacionesGenerales ? "none" : "block";
-          document.getElementById("modal").style.display = "block";
+          info.jsEvent.preventDefault();
+          abrirMiniMenu(info.event);
         },
 
         eventContent: function(arg) {
@@ -832,6 +1076,13 @@
 
         eventDidMount: function(info) {
           actualizarDatosEventoEnDOM(info);
+
+          // Ocultar prioridad si el título está truncado por falta de espacio
+          var tituloEl = info.el.querySelector('.evento-titulo');
+          if (tituloEl && tituloEl.scrollWidth > tituloEl.offsetWidth) {
+            var prio = info.el.querySelector('.evento-prioridad');
+            if (prio) prio.style.display = 'none';
+          }
         },
 
         eventClassNames: function(arg) {
@@ -910,6 +1161,18 @@
         document.body.classList.add('dark-mode');
       }
 
+      // Inicializar visibilidad de filtros
+      var filtrosVisible = localStorage.getItem('filtrosVisible') !== 'false';
+      var barra = document.querySelector('.barra-herramientas');
+      var btn = document.getElementById('toggleFiltros');
+      if (filtrosVisible) {
+        barra.style.display = 'flex';
+        btn.textContent = '▼ Filtros';
+      } else {
+        barra.style.display = 'none';
+        btn.textContent = '▲ Filtros';
+      }
+
       actualizarReloj();
       setInterval(actualizarReloj, 1000);
 
@@ -918,6 +1181,12 @@
       document.getElementById("filtroPrioridad").addEventListener("change", aplicarFiltros);
       document.getElementById("filtroFecha").addEventListener("input", aplicarFiltros);
       document.getElementById("filtroPosicion").addEventListener("change", aplicarFiltros);
+
+      document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") {
+          cerrarMiniMenu();
+        }
+      });
     });
   </script>
 
